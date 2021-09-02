@@ -1,4 +1,4 @@
 bodywork==2.1.7
 fastapi==0.68.1
-pycaret==2.3.3
+pycaret[full]==2.3.3
 uvicorn==0.15.0

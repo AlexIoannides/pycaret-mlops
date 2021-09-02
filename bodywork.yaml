@@ -8,7 +8,7 @@ stages:
     executable_module_path: serve_predictions.py
     requirements:
       - fastapi==0.68.1
-      - pycaret==2.3.3
+      - pycaret[full]==2.3.3
       - uvicorn==0.15.0
     cpu_request: 0.5
     memory_request_mb: 150
