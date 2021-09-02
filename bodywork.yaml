@@ -1,7 +1,7 @@
 version: "1.0"
 project:
   name: pycaret-diamond-prices
-  docker_image: bodyworkml/bodywork-core:v2.1.7
+  docker_image: bodyworkml/bodywork-core:2.1.7
   DAG: serve-predictions
 stages:
   serve-predictions:
