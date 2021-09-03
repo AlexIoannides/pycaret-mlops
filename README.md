@@ -13,9 +13,9 @@ This short post follows-on from [Moez Ali's tutorial](https://towardsdatascience
 In the [original post](https://towardsdatascience.com/build-with-pycaret-deploy-with-fastapi-333c710dc786) Moez Ali guides us through the process of training and saving a model using PyCaret and then demonstrates how to use FastAPI to develop a Python module that serves predictions from the model. If you work through the post you should end-up with a project directory that looks something like this,
 
 ```text
-- pycaret-mlops/
-|-- diamond-pipeline.pkl
-|-- serve_predictions.py
+|-- pycaret-mlops/
+    |-- diamond-pipeline.pkl
+    |-- serve_predictions.py
 ```
 
 Create a GitHub repo and commit **all** of these file to it. We've worked through this for you and you can find our project repo at [https://github.com/AlexIoannides/pycaret-mlops](https://github.com/AlexIoannides/pycaret-mlops), where we've reproduced all of the training code in the [train_model.ipynb](https://github.com/AlexIoannides/pycaret-mlops/blob/master/train_model.ipynb) notebook, to make life simpler.
