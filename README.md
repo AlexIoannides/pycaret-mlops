@@ -1,94 +1,125 @@
-# Serve ML Models on Kubernetes with Bodywork
+# Build with PyCaret, Deploy to Kubernetes with FastAPI and Bodywork
 
-![bodywork](https://bodywork-media.s3.eu-west-2.amazonaws.com/serve_model_qs.png)
+<div align="center">
+<img src="https://bodywork-media.s3.eu-west-2.amazonaws.com/pycaret-mlops/pycaret_with_bodywork.png"/>
+</div>
 
-This repository contains a Bodywork project that demonstrates how to deploy a machine learning service on Kubernetes, with Bodywork. To run this project, follow the steps below.
+This short post follows-on from [Moez Ali's tutorial](https://towardsdatascience.com/build-with-pycaret-deploy-with-fastapi-333c710dc786) on how to train a model with [PyCaret](https://pycaret.org) and serve predictions using [FastAPI](https://fastapi.tiangolo.com). We're going to take this one step further and add some MLOps magic by deploying the FastAPI prediction service to a [Kubernetes](https://kubernetes.io) cluster using [Bodywork](https://github.com/bodywork-ml/bodywork-core).
 
-## Get Access to a Kubernetes Cluster
+[Bodywork](https://github.com/bodywork-ml/bodywork-core) is a Python package that exposes a CLI for configuring Kubernetes to orchestrate your ML pipelines and deploy your prediction services, without having to build Docker images or learn how to configure Kubernetes.
 
-In order to run this example project you will need access to a Kubernetes cluster. To setup a single-node test cluster on your local machine we recommend [minikube](https://minikube.sigs.Kubernetes.io/docs/). Check your access to Kubernetes by running,
+## 👉🏼 Create a GitHub Repo for the Project
 
-```shell
-$ kubectl cluster-info
+In the [original post](https://towardsdatascience.com/build-with-pycaret-deploy-with-fastapi-333c710dc786) Moez Ali guides us through the process of training and saving a model using PyCaret and then demonstrates how to use FastAPI to develop a Python module that serves predictions from the model. If you work through the post you should end-up with a project directory that looks something like this,
+
+```text
+- pycaret-mlops/
+|-- diamond-pipeline.pkl
+|-- serve_predictions.py
 ```
 
-Which should return the details of your cluster.
+Create a GitHub repo and commit **all** of these file to it. We've worked through this for you and you can find our project repo at [https://github.com/AlexIoannides/pycaret-mlops](https://github.com/AlexIoannides/pycaret-mlops), where we've reproduced all of the training code in the [train_model.ipynb](https://github.com/AlexIoannides/pycaret-mlops/blob/master/train_model.ipynb) notebook, to make life simpler.
 
-## Install the Bodywork Python Package
+## 👉🏼 Install Bodywork
 
-```shell
-$ pip install bodywork
+[Bodywork](https://github.com/bodywork-ml/bodywork-core) is a Python package that exposes a CLI for configuring Kubernetes to orchestrate your ML pipelines and deploy your prediction services. Install it using Pip,
+
+```text
+$ pip install bodywork==2.1.7
 ```
 
-## Setup a Kubernetes Namespace for use with Bodywork
+## 👉🏼 Configure the Kubernetes Deployment
 
-```shell
-$ bodywork setup-namespace scoring-service
+Create a file called `bodywork.yaml` and add the following,
+
+```yaml
+version: "1.0"
+project:
+  name: pycaret-diamond-prices
+  docker_image: bodyworkml/bodywork-core:2.1.7
+  DAG: serve-predictions
+stages:
+  serve-predictions:
+    executable_module_path: serve_predictions.py
+    requirements:
+      - fastapi==0.68.1
+      - pycaret[full]==2.3.3
+      - uvicorn==0.15.0
+    cpu_request: 0.5
+    memory_request_mb: 250
+    service:
+      max_startup_time_seconds: 120
+      replicas: 2
+      port: 8000
+      ingress: true
+logging:
+  log_level: INFO
 ```
 
-## Deploy the Service
+This requests that two containers (or replicas) running the FastAPI prediction service are created, with automatic load-balancing between them - nice! For more info on what this all these configuration parameters mean, head to the [Bodywork docs](https://bodywork.readthedocs.io/en/latest/).
 
-To test the service-deployment workflow, using a workflow-controller running on your local machine and interacting with your Kubernetes cluster, run,
+Commit this file to your Git repo and push to GitHub,
 
-```shell
-$ bodywork workflow \
-    --namespace=scoring-service \
-    https://github.com/bodywork-ml/bodywork-serve-model-project \
-    master
+```text
+$ git add bodywork.yaml
+$ git commit -m "Add bodywork deployment config"
+$ git push origin master
 ```
 
-The workflow-controller logs will be streamed to your shell's standard output until the service is successfully deployed.
+## 👉🏼 Start a Kubernetes Cluster
 
-## Testing the Service
+If you don't have a Kubernetes cluster handy, then [download Minikube](https://minikube.sigs.k8s.io/docs/start/) so you can test locally. Then, start and configure a cluster as follows,
 
-Service deployments are accessible via HTTP from within the cluster - they are not exposed to the public internet, unless you have [installed an ingress controller](https://bodywork.readthedocs.io/en/latest/kubernetes/#configuring-ingress) in your cluster. The simplest way to test a service from your local machine, is by using a local proxy server to enable access to your cluster. This can be achieved by issuing the following command,
-
-```shell
-$ kubectl proxy
+```text
+$ minikube start --kubernetes-version=v1.17.17
+$ minikube addons enable ingress-dns
 ```
 
-Then in a new shell, you can use the curl tool to test the service. For example,
+You'll need the IP address of your local cluster for testing the prediction service, which you can get with,
 
-```shell
-$ curl http://localhost:8001/api/v1/namespaces/scoring-service/services/bodywork-serve-model-project--scoring-service/proxy/iris/v1/score \
-    --request POST \
-    --header "Content-Type: application/json" \
-    --data '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
+```text
+$ minikube profile list
+
+|----------|-----------|---------|--------------|------|----------|---------|-------|
+| Profile  | VM Driver | Runtime |      IP      | Port | Version  | Status  | Nodes |
+|----------|-----------|---------|--------------|------|----------|---------|-------|
+| minikube | hyperkit  | docker  | 192.168.64.6 | 8443 | v1.17.17 | Stopped |     1 |
+|----------|-----------|---------|--------------|------|----------|---------|-------|
 ```
 
-Should return,
+## 👉🏼 Deploy the Prediction Service to Kubernetes
 
-```json
-{
-    "species_prediction":"setosa",
-    "probabilities":"setosa=1.0|versicolor=0.0|virginica=0.0",
-    "model_info": "DecisionTreeClassifier(class_weight='balanced', random_state=42)"
-}
+<div align="center">
+<img src="https://bodywork-media.s3.eu-west-2.amazonaws.com/pycaret-mlops/deploy_pycaret_service.png"/>
+</div>
+
+Create a dedicated and secure space on your cluster for the deployment,
+
+```text
+$ bodywork setup-namespace pipelines
 ```
 
-According to how the payload has been defined in the `scoring-service/serve.py` module.
+Then deploy!
 
-If an ingress controller is operational in your cluster, then the service can be tested via the public internet using,
-
-```shell
-$ curl http://YOUR_CLUSTERS_EXTERNAL_IP/scoring-service/bodywork-serve-model-project--scoring-service/iris/v1/score \
-    --request POST \
-    --header "Content-Type: application/json" \
-    --data '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
+```text
+$ bodywork deployment create \
+    --namespace=pipelines \
+    --name=initial-deployment \
+    --git-repo-url=https://github.com/AlexIoannides/pycaret-mlops.git \
+    --git-repo-branch=master \
+    --local-workflow-controller
 ```
 
-See [here](https://bodywork.readthedocs.io/en/latest/kubernetes/#connecting-to-the-cluster) for instruction on how to retrieve `YOUR_CLUSTERS_EXTERNAL_IP`.
+This will stream the logs to your terminal so you can keep track of progress.
 
-## Cleaning Up
+## 👉🏼 Test the Service
 
-To clean-up the deployment in its entirety, delete the namespace using kubectl - e.g. by running,
+Use the [test_prediction_service.ipynb](https://github.com/AlexIoannides/pycaret-mlops/blob/master/train_model.ipynb) notebook to test the service using Python.
 
-```shell
-$ kubectl delete ns scoring-service
-```
+![jupyter](https://bodywork-media.s3.eu-west-2.amazonaws.com/pycaret-mlops/test_service.png)
 
-## Make this Project Your Own
+## 👉🏼 Where to go from Here
 
-This repository is a [GitHub template repository](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) that can be automatically copied into your own GitHub account by clicking the `Use this template` button above.
-
-After you've cloned the template project, use official [Bodywork documentation](https://bodywork.readthedocs.io/en/latest/) to help modify the project to meet your own requirements.
+- [Continuous training pipelines with Bodywork](https://bodywork.readthedocs.io/en/latest/quickstart_ml_pipeline/)
+- [Bodywork + MLflow](https://github.com/bodywork-ml/bodywork-pipeline-with-mlflow)
+- [Best practices for engineering ML pipelines](https://github.com/bodywork-ml/ml-pipeline-engineering)
