@@ -1,20 +1,20 @@
-version: "1.0"
-project:
+version: "1.1"
+pipeline:
   name: pycaret-diamond-prices
-  docker_image: bodyworkml/bodywork-core:2.1.7
+  docker_image: bodyworkml/bodywork-core:3.0
   DAG: serve-predictions
 stages:
   serve-predictions:
     executable_module_path: serve_predictions.py
     requirements:
       - fastapi==0.68.1
-      - pycaret[full]==2.3.3
       - uvicorn==0.15.0
-    cpu_request: 0.5
-    memory_request_mb: 150
+      - pycaret==2.3.3
+    cpu_request: 1.0
+    memory_request_mb: 500
     service:
-      max_startup_time_seconds: 120
-      replicas: 2
+      max_startup_time_seconds: 600
+      replicas: 1
       port: 8000
       ingress: true
 logging:
