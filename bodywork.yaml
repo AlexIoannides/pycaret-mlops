@@ -10,10 +10,10 @@ stages:
       - fastapi==0.68.1
       - uvicorn==0.15.0
       - pycaret[full]==2.3.3
-    cpu_request: 0.5
-    memory_request_mb: 250
+    cpu_request: 1.0
+    memory_request_mb: 500
     service:
-      max_startup_time_seconds: 190
+      max_startup_time_seconds: 240
       replicas: 2
       port: 8000
       ingress: true

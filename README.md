@@ -25,7 +25,7 @@ Create a GitHub repo and commit **all** of these file to it. We've worked throug
 [Bodywork](https://github.com/bodywork-ml/bodywork-core) is a Python package that exposes a CLI for configuring Kubernetes to orchestrate your ML pipelines and deploy your prediction services. Install it using Pip,
 
 ```text
-$ pip install bodywork==3.0
+$ pip install bodywork
 ```
 
 ## 👉🏼 Configure the Kubernetes Deployment
@@ -45,10 +45,10 @@ stages:
       - fastapi==0.68.1
       - uvicorn==0.15.0
       - pycaret[full]==2.3.3
-    cpu_request: 0.5
-    memory_request_mb: 250
+    cpu_request: 1.0
+    memory_request_mb: 500
     service:
-      max_startup_time_seconds: 190
+      max_startup_time_seconds: 240
       replicas: 2
       port: 8000
       ingress: true
