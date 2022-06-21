@@ -25,7 +25,7 @@ Create a GitHub repo and commit **all** of these file to it. We've worked throug
 [Bodywork](https://github.com/bodywork-ml/bodywork-core) is a Python package that exposes a CLI for configuring Kubernetes to orchestrate your ML pipelines and deploy your prediction services. Install it using Pip,
 
 ```text
-$ pip install bodywork==2.1.7
+$ pip install bodywork==3.0
 ```
 
 ## 👉🏼 Configure the Kubernetes Deployment
@@ -33,22 +33,22 @@ $ pip install bodywork==2.1.7
 Create a file called `bodywork.yaml` and add the following,
 
 ```yaml
-version: "1.0"
-project:
+version: "1.1"
+pipeline:
   name: pycaret-diamond-prices
-  docker_image: bodyworkml/bodywork-core:2.1.7
+  docker_image: bodyworkml/bodywork-core:3.0
   DAG: serve-predictions
 stages:
   serve-predictions:
     executable_module_path: serve_predictions.py
     requirements:
       - fastapi==0.68.1
-      - pycaret[full]==2.3.3
       - uvicorn==0.15.0
+      - pycaret[full]==2.3.3
     cpu_request: 0.5
     memory_request_mb: 250
     service:
-      max_startup_time_seconds: 120
+      max_startup_time_seconds: 190
       replicas: 2
       port: 8000
       ingress: true
@@ -71,20 +71,7 @@ $ git push origin master
 If you don't have a Kubernetes cluster handy, then [download Minikube](https://minikube.sigs.k8s.io/docs/start/) so you can test locally. Then, start and configure a cluster as follows,
 
 ```text
-$ minikube start --kubernetes-version=v1.17.17
-$ minikube addons enable ingress-dns
-```
-
-You'll need the IP address of your local cluster for testing the prediction service, which you can get with,
-
-```text
-$ minikube profile list
-
-|----------|-----------|---------|--------------|------|----------|---------|-------|
-| Profile  | VM Driver | Runtime |      IP      | Port | Version  | Status  | Nodes |
-|----------|-----------|---------|--------------|------|----------|---------|-------|
-| minikube | hyperkit  | docker  | 192.168.64.6 | 8443 | v1.17.17 | Stopped |     1 |
-|----------|-----------|---------|--------------|------|----------|---------|-------|
+$ minikube start --kubernetes-version=v1.22.6 --addons=ingress --cpus=2 --memory=4g
 ```
 
 ## 👉🏼 Deploy the Prediction Service to Kubernetes
@@ -93,28 +80,21 @@ $ minikube profile list
 <img src="https://bodywork-media.s3.eu-west-2.amazonaws.com/pycaret-mlops/deploy_pycaret_service.png"/>
 </div>
 
-Create a dedicated and secure space on your cluster for the deployment,
-
 ```text
-$ bodywork setup-namespace pipelines
-```
-
-Then deploy!
-
-```text
-$ bodywork deployment create \
-    --namespace=pipelines \
-    --name=initial-deployment \
-    --git-repo-url=https://github.com/AlexIoannides/pycaret-mlops.git \
-    --git-repo-branch=master \
-    --local-workflow-controller
+$ bodywork create deployment https://github.com/AlexIoannides/pycaret-mlops.git
 ```
 
 This will stream the logs to your terminal so you can keep track of progress.
 
 ## 👉🏼 Test the Service
 
-Use the [test_prediction_service.ipynb](https://github.com/AlexIoannides/pycaret-mlops/blob/master/train_model.ipynb) notebook to test the service using Python.
+First create a route to your cluster,
+
+```text
+$ minikube kubectl -- -n ingress-nginx port-forward service/ingress-nginx-controller 8080:80
+```
+
+And then use the [test_prediction_service.ipynb](https://github.com/AlexIoannides/pycaret-mlops/blob/master/train_model.ipynb) notebook to test the service using Python.
 
 ![jupyter](https://bodywork-media.s3.eu-west-2.amazonaws.com/pycaret-mlops/test_service.png)
 
