@@ -44,11 +44,11 @@ stages:
     requirements:
       - fastapi==0.68.1
       - uvicorn==0.15.0
-      - pycaret[full]==2.3.3
+      - pycaret==2.3.3
     cpu_request: 1.0
     memory_request_mb: 500
     service:
-      max_startup_time_seconds: 240
+      max_startup_time_seconds: 600
       replicas: 1
       port: 8000
       ingress: true

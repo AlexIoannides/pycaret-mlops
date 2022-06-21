@@ -1,4 +1,4 @@
-bodywork==2.1.7
-fastapi==0.68.1
+bodywork>=3.0.0
 pycaret[full]==2.3.3
+fastapi==0.68.1
 uvicorn==0.15.0
